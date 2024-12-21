@@ -10,6 +10,7 @@ namespace LITBOT
         public static TelegramBotClient bot;
         public static string chatStatus;
         public static List<string> infoAboutBook = new List<string>();
+        public static InlineKeyboardMarkup inlineKeyboardPicture;
         static async Task Main(string[] args)
         {
             using var cts = new CancellationTokenSource();
@@ -33,7 +34,7 @@ namespace LITBOT
             Console.WriteLine($"{msg.From} прислал вам личное сообщение: {msg.Text}");
             if(msg.Text == "/start")
             {
-                var inlineKeyboard = new InlineKeyboardMarkup(
+                var inlineKeyboardStart = new InlineKeyboardMarkup(
                     new List<InlineKeyboardButton[]>()
                     {
                        new InlineKeyboardButton[]
@@ -53,23 +54,74 @@ namespace LITBOT
                     msg.Chat,
                     $"Привет, {msg.From.FirstName}! Моё имя - LITBOT. Я умею загружать книги на сервер, выгружать их," +
                     $"а также могу показать Вашу библиотеку. Выберите, что мне нужно сделать:",
-                    replyMarkup: inlineKeyboard);
+                    replyMarkup: inlineKeyboardStart);
             }
-            else
+            else if (chatStatus != null)
             {
                 switch (chatStatus)
                 {
                     case "genre":
                         {
                             infoAboutBook.Add(msg.Text);
+                            chatStatus = "author";
+                            await bot.SendMessage(
+                                msg.Chat,
+                                "Введите ФИО автора в формате И.О. Фамилия (например: А.С. Пушкин):");
+                            break;
+                        }
+                    case "author":
+                        {
+                            infoAboutBook.Add(msg.Text);
+                            chatStatus = "nameBook";
+                            await bot.SendMessage(
+                                msg.Chat,
+                                "Введите название книги:");
+                            break;
+                        }
+                    case "nameBook":
+                        {
+                            infoAboutBook.Add(msg.Text);
+                            chatStatus = "picture";
+                            inlineKeyboardPicture = new InlineKeyboardMarkup(
+                                new List<InlineKeyboardButton[]>
+                                {
+                                    new InlineKeyboardButton[]
+                                    {
+                                        InlineKeyboardButton.WithCallbackData("Желаю", "wish"),
+                                        InlineKeyboardButton.WithCallbackData("Не желаю", "no wish")
+                                    }
+                                });
+                            await bot.SendMessage(
+                                msg.Chat,
+                                "Если желаете, можете отправить обложку книги в виде картинки:",
+                                replyMarkup: inlineKeyboardPicture);
+                            break;
+                        }
+                    case "picture":
+                        {
+                            await bot.SendMessage(msg.Chat, "Мы находимся в case 'picture((('");  // Почему не появляется?
+                            ////////////////////////////////////////////////////////////////////
                             break;
                         }
                 }
             }
+            else if(msg.Type == MessageType.Photo)
+            {
+                await bot.SendMessage(
+                    msg.Chat,
+                    "Отлично! Я загрузил картинку!");
+                // Здес или в case "picture" должна загрузиться картинка на комп
+            }
+            else
+            {
+                await bot.SendMessage(
+                    msg.Chat,
+                    "Для начала работы нажмите на \"/start\"");
+            }
             
 
-            Console.WriteLine($"Received {type} '{msg.Text}' in {msg.Chat}");
-            await bot.SendMessage(msg.Chat, $"{msg.From} said: {msg.Text}");
+            //Console.WriteLine($"Received {type} '{msg.Text}' in {msg.Chat}");
+            //await bot.SendMessage(msg.Chat, $"{msg.From} said: {msg.Text}");
         }
         static async Task OnUpdate(Update update)
         {
@@ -81,11 +133,31 @@ namespace LITBOT
                         await bot.AnswerCallbackQuery(callbackQuery.Id);
                         await bot.SendMessage(
                             callbackQuery.Message.Chat,
-                            "Вы выбрали \"Загрузить книгу на сервер\"\n" +
+                            "Вы выбрали \"Загрузить книгу на сервер\"\n");
+                        await bot.SendMessage(
+                            callbackQuery.Message.Chat,
                             "Введите жанр книги");
                         chatStatus = "genre";
                         break;
 
+                    }
+                case "wish":
+                    {
+                        await bot.AnswerCallbackQuery(callbackQuery.Id);
+                        await bot.SendMessage(
+                            callbackQuery.Message.Chat,
+                            "Вы выбрали \"Желаю\"\n");
+                        await bot.SendMessage(
+                            callbackQuery.Message.Chat,
+                            "Приложите, пожалуйста, картинку:");
+                        break;
+                    }
+                case "no wish":
+                    {
+                        await bot.SendMessage(
+                            update.Message.Chat,
+                            "Хорошо. Теперь нужно приложить файл книги:");
+                        break;
                     }
                 default:
                     {
