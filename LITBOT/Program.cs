@@ -11,6 +11,7 @@ namespace LITBOT
         public static string chatStatus;
         public static List<string> infoAboutBook = new List<string>();
         public static InlineKeyboardMarkup inlineKeyboardPicture;
+        public static Book book = new Book();
         static async Task Main(string[] args)
         {
             using var cts = new CancellationTokenSource();
@@ -18,7 +19,7 @@ namespace LITBOT
             var me = await bot.GetMe();
             bot.OnMessage += OnMessage;
             bot.OnUpdate += OnUpdate;
-
+            
             Console.WriteLine($"@{me.Username} is running... Press Enter to terminate");
             Console.ReadLine();
 
@@ -31,6 +32,7 @@ namespace LITBOT
         }
         static async Task OnMessage(Message msg, UpdateType type)
         {
+            
             Console.WriteLine($"{msg.From} прислал вам личное сообщение: {msg.Text}");
             if(msg.Text == "/start")
             {
@@ -62,7 +64,8 @@ namespace LITBOT
                 {
                     case "genre":
                         {
-                            infoAboutBook.Add(msg.Text);
+                            infoAboutBook.Add(msg.Text);//
+                            book.genre = msg.Text;
                             chatStatus = "author";
                             await bot.SendMessage(
                                 msg.Chat,
@@ -71,7 +74,8 @@ namespace LITBOT
                         }
                     case "author":
                         {
-                            infoAboutBook.Add(msg.Text);
+                            infoAboutBook.Add(msg.Text);//
+                            book.author = msg.Text;
                             chatStatus = "nameBook";
                             await bot.SendMessage(
                                 msg.Chat,
@@ -80,7 +84,8 @@ namespace LITBOT
                         }
                     case "nameBook":
                         {
-                            infoAboutBook.Add(msg.Text);
+                            infoAboutBook.Add(msg.Text);//
+                            book.name = msg.Text;
                             chatStatus = "picture";
                             inlineKeyboardPicture = new InlineKeyboardMarkup(
                                 new List<InlineKeyboardButton[]>
@@ -100,7 +105,30 @@ namespace LITBOT
                     case "picture":
                         {
                             await bot.SendMessage(msg.Chat, "Мы находимся в case 'picture((('");  // Почему не появляется?
-                            ////////////////////////////////////////////////////////////////////
+                            string path = @"C:\Users\demis\Desktop\Study\OTUS\ProjectWorkLitBot\";
+                            string subpath = $@"{msg.From.Id}\{book.genre}\{book.author}\{book.name}\";
+                            DirectoryInfo dirInfo = new DirectoryInfo(path);
+                            if (dirInfo.Exists)
+                            {
+                                dirInfo.Create();
+                            }
+                            dirInfo.CreateSubdirectory(subpath);
+
+                            string fileId;
+                            if (msg.Type is MessageType.Document)
+                            {
+                                fileId = msg.Document.FileId;
+                            }
+                            else
+                            {
+                                fileId = msg.Photo.Last().FileId;
+                            }
+                            var fileInfo = await bot.GetFile(fileId);
+                            var filePath = fileInfo.FilePath;
+                            string destinationFilePath = path + subpath + @"обложка.jpg";
+                            ;
+                            await using Stream fileStream = System.IO.File.Create(destinationFilePath);
+                            await bot.DownloadFile(filePath, fileStream);
                             break;
                         }
                 }
