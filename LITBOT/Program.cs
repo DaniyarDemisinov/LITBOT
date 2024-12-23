@@ -12,6 +12,7 @@ namespace LITBOT
         public static List<string> infoAboutBook = new List<string>();
         public static InlineKeyboardMarkup inlineKeyboardPicture;
         public static Book book = new Book();
+        public static ReplyKeyboardMarkup replyKeyboard;
         static async Task Main(string[] args)
         {
             using var cts = new CancellationTokenSource();
@@ -19,7 +20,9 @@ namespace LITBOT
             var me = await bot.GetMe();
             bot.OnMessage += OnMessage;
             bot.OnUpdate += OnUpdate;
-            
+            replyKeyboard = new ReplyKeyboardMarkup(true).AddButtons("/start");
+
+
             Console.WriteLine($"@{me.Username} is running... Press Enter to terminate");
             Console.ReadLine();
 
@@ -52,10 +55,11 @@ namespace LITBOT
                            InlineKeyboardButton.WithCallbackData("Посмотреть свою библиотеку", "watch")
                        }
                     });
+                await bot.SendMessage(msg.Chat, $"Здравствуйте, {msg.From.FirstName}! Моё имя - LITBOT. ", replyMarkup: replyKeyboard);
                 await bot.SendMessage(
                     msg.Chat,
-                    $"Привет, {msg.From.FirstName}! Моё имя - LITBOT. Я умею загружать книги на сервер, выгружать их," +
-                    $"а также могу показать Вашу библиотеку. Выберите, что мне нужно сделать:",
+                    "Я умею загружать книги на сервер, выгружать их, " +
+                    "а также могу показать Вашу библиотеку. Выберите, что мне нужно сделать:",
                     replyMarkup: inlineKeyboardStart);
             }
             else if (chatStatus != null)
@@ -104,11 +108,10 @@ namespace LITBOT
                         }
                     case "picture":
                         {
-                            await bot.SendMessage(msg.Chat, "Мы находимся в case 'picture((('");  // Почему не появляется?
                             string path = @"C:\Users\demis\Desktop\Study\OTUS\ProjectWorkLitBot\";
                             string subpath = $@"{msg.From.Id}\{book.genre}\{book.author}\{book.name}\";
                             DirectoryInfo dirInfo = new DirectoryInfo(path);
-                            if (dirInfo.Exists)
+                            if (!dirInfo.Exists)
                             {
                                 dirInfo.Create();
                             }
@@ -125,14 +128,49 @@ namespace LITBOT
                             }
                             var fileInfo = await bot.GetFile(fileId);
                             var filePath = fileInfo.FilePath;
-                            string destinationFilePath = path + subpath + @"обложка.jpg";
-                            ;
+                            var fileExtension = Path.GetExtension(filePath);
+                            string destinationFilePath = path + subpath + $@"{book.name}.jpg";
                             await using Stream fileStream = System.IO.File.Create(destinationFilePath);
                             await bot.DownloadFile(filePath, fileStream);
+                            await bot.SendMessage(msg.Chat, "Обложка успешна загружена");
+                            chatStatus = "book";
+                            await bot.SendMessage(msg.Chat, "Отправьте книгу");
+                            break;
+                        }
+                    case "book":
+                        {
+                            string path = @"C:\Users\demis\Desktop\Study\OTUS\ProjectWorkLitBot\";
+                            string subpath = $@"{msg.From.Id}\{book.genre}\{book.author}\{book.name}\";
+                            DirectoryInfo dirInfo = new DirectoryInfo(path);
+                            if (!dirInfo.Exists)
+                            {
+                                dirInfo.Create();
+                            }
+                            dirInfo.CreateSubdirectory(subpath);
+
+                            if(msg.Type is not MessageType.Document)
+                            {
+                                await bot.SendMessage(
+                                    msg.Chat,
+                                    "Ошибка. Пожалуйста, отправьте файл в виде документа");
+                                return;
+                            }
+
+                            var fileId = msg.Document.FileId;
+                            
+                            var fileInfo = await bot.GetFile(fileId);
+                            var filePath = fileInfo.FilePath;
+                            var fileExtension = Path.GetExtension(filePath);
+                            var destinationFilePath = path + subpath + $@"{book.name}{fileExtension}";
+                            await using Stream fileStream = System.IO.File.Create(destinationFilePath);
+                            await bot.DownloadFile(filePath, fileStream);
+                            await bot.SendMessage(msg.Chat, "Книга успешно загружена");
+                            
                             break;
                         }
                 }
             }
+            // По идее, надо удалить это:
             else if(msg.Type == MessageType.Photo)
             {
                 await bot.SendMessage(
@@ -154,7 +192,7 @@ namespace LITBOT
         static async Task OnUpdate(Update update)
         {
             var callbackQuery = update.CallbackQuery;
-            switch (callbackQuery.Data)
+            switch (callbackQuery!.Data)
             {
                 case "put":
                     {
@@ -183,8 +221,9 @@ namespace LITBOT
                 case "no wish":
                     {
                         await bot.SendMessage(
-                            update.Message.Chat,
+                            callbackQuery.Message.Chat,
                             "Хорошо. Теперь нужно приложить файл книги:");
+                        chatStatus = "book";
                         break;
                     }
                 default:
