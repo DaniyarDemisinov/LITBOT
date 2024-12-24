@@ -13,6 +13,7 @@ namespace LITBOT
         public static InlineKeyboardMarkup inlineKeyboardPicture;
         public static Book book = new Book();
         public static ReplyKeyboardMarkup replyKeyboard;
+        
         static async Task Main(string[] args)
         {
             using var cts = new CancellationTokenSource();
@@ -26,10 +27,10 @@ namespace LITBOT
             Console.WriteLine($"@{me.Username} is running... Press Enter to terminate");
             Console.ReadLine();
 
-            foreach ( string s in infoAboutBook )
-            {
-                Console.WriteLine( s );
-            }
+            Console.WriteLine(book.genre);
+            Console.WriteLine(book.author);
+            Console.WriteLine(book.name);
+            Console.WriteLine(book.pathBook);
 
             cts.Cancel();
         }
@@ -134,6 +135,7 @@ namespace LITBOT
                             await bot.DownloadFile(filePath, fileStream);
                             await bot.SendMessage(msg.Chat, "Обложка успешна загружена");
                             chatStatus = "book";
+                            book.pathPicture = destinationFilePath;
                             await bot.SendMessage(msg.Chat, "Отправьте книгу");
                             break;
                         }
@@ -164,8 +166,12 @@ namespace LITBOT
                             var destinationFilePath = path + subpath + $@"{book.name}{fileExtension}";
                             await using Stream fileStream = System.IO.File.Create(destinationFilePath);
                             await bot.DownloadFile(filePath, fileStream);
-                            await bot.SendMessage(msg.Chat, "Книга успешно загружена");
                             
+
+                            book.pathBook = destinationFilePath;
+                            DapperBookRepository dapperBookRepository = new DapperBookRepository();
+                            await dapperBookRepository.InsertToBook(book);
+                            await bot.SendMessage(msg.Chat, "Книга успешно загружена");
                             break;
                         }
                 }
@@ -233,6 +239,6 @@ namespace LITBOT
                     }
             }
         }
-        
+        // добавить методы по обработке ошибок
     }
 }
