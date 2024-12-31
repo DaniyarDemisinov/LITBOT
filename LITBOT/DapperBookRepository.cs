@@ -17,21 +17,76 @@ namespace LITBOT
             _connection = new NpgsqlConnection(_connectionString);
             _connection.Open();
         }
-        public async Task InsertToBook(Book book)
+        public async Task InsertToGenre(Genre genre)
         {
-            string commandText = "INSERT INTO book " +
-                "(genre, author, name, path_picture, path_book) " +
-                "VALUES " +
-                "(@genre, @author, @name, @path_picture, @path_book)";
-            var queryArguments = new 
+            string commandText = 
+                "INSERT INTO genre (name) VALUES (@name)" +
+                "ON CONFLICT (name) " +
+                "DO NOTHING";
+            var queryArguments = new
             {
-                genre = book.genre,
-                author = book.author,
-                name = book.name,
-                path_picture = book.pathPicture,
-                path_book = book.pathBook
+                name = genre.name
             };
             await _connection.ExecuteAsync(commandText, queryArguments);
         }
+        public int GetLastIdTable(string tableName)
+        {
+            string text = 
+                $"SELECT id FROM {tableName} " +
+                $"ORDER BY id DESC";
+            
+            var result = _connection.QueryFirstOrDefault<int>(text);
+            return result;
+        }
+        public async Task InsertToAuthor(Author author, int genreId)
+        {
+            string commandText = "INSERT INTO author " +
+                "(name, genre_id) " +
+                "VALUES " +
+                "(@name, @genre_id) " +
+                "ON CONFLICT (name) " +
+                "DO NOTHING";
+            var queryArguments = new
+            {
+                name = author.name,
+                genre_id = genreId
+            };
+            await _connection.ExecuteAsync(commandText, queryArguments);
+        }
+        //public async Task<int> GetLastId(string tableName)
+        //{
+        //    string text =
+        //        $"SELECT " +
+        //        $"id " +
+        //        $"FROM {tableName} " +
+        //        $"ORDER BY id DESC " +
+        //        $"LIMIT @a";
+        //    var queryArguments = new
+        //    {
+        //        a = 1
+        //    };
+        //    var result = await _connection.ExecuteAsync(text, queryArguments);
+        //    return result;
+        //}
+
+        public async Task InsertToBook(Book book, int genreId, int authorId)
+        {
+            string commandText = "INSERT INTO book " +
+                "(name, picture_path, book_path, genre_id, author_id) " +
+                "VALUES " +
+                "(@name, @picture_path, @book_path, @genre_id, @author_id) " +
+                "ON CONFLICT (name) " +
+                "DO NOTHING";
+            var queryArguments = new 
+            {
+                name = book.name,
+                picture_path = book.picturePath,
+                book_path = book.bookPath,
+                genre_id = genreId,
+                author_id = authorId
+            };
+            await _connection.ExecuteAsync(commandText, queryArguments);
+        }
+        
     }
 }

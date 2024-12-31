@@ -11,6 +11,8 @@ namespace LITBOT
         public static string chatStatus;
         public static List<string> infoAboutBook = new List<string>();
         public static InlineKeyboardMarkup inlineKeyboardPicture;
+        public static Genre genre = new Genre();
+        public static Author author = new Author();
         public static Book book = new Book();
         public static ReplyKeyboardMarkup replyKeyboard;
         
@@ -27,10 +29,6 @@ namespace LITBOT
             Console.WriteLine($"@{me.Username} is running... Press Enter to terminate");
             Console.ReadLine();
 
-            Console.WriteLine(book.genre);
-            Console.WriteLine(book.author);
-            Console.WriteLine(book.name);
-            Console.WriteLine(book.pathBook);
 
             cts.Cancel();
         }
@@ -45,11 +43,11 @@ namespace LITBOT
                     {
                        new InlineKeyboardButton[]
                        {
-                           InlineKeyboardButton.WithCallbackData("Загрузить книгу на сервер", "put")
+                           InlineKeyboardButton.WithCallbackData("Загрузить книгу в библиотеку", "put")
                        },
                        new InlineKeyboardButton[]
                        {
-                           InlineKeyboardButton.WithCallbackData("Скачать книгу с сервера", "take")
+                           InlineKeyboardButton.WithCallbackData("Скачать книгу из библиотеки", "take")
                        },
                        new InlineKeyboardButton[]
                        {
@@ -70,7 +68,7 @@ namespace LITBOT
                     case "genre":
                         {
                             infoAboutBook.Add(msg.Text);//
-                            book.genre = msg.Text;
+                            genre.name = msg.Text;
                             chatStatus = "author";
                             await bot.SendMessage(
                                 msg.Chat,
@@ -80,7 +78,7 @@ namespace LITBOT
                     case "author":
                         {
                             infoAboutBook.Add(msg.Text);//
-                            book.author = msg.Text;
+                            author.name = msg.Text;
                             chatStatus = "nameBook";
                             await bot.SendMessage(
                                 msg.Chat,
@@ -110,7 +108,7 @@ namespace LITBOT
                     case "picture":
                         {
                             string path = @"C:\Users\demis\Desktop\Study\OTUS\ProjectWorkLitBot\";
-                            string subpath = $@"{msg.From.Id}\{book.genre}\{book.author}\{book.name}\";
+                            string subpath = $@"{msg.From.Id}\{genre.name}\{author.name}\{book.name}\";
                             DirectoryInfo dirInfo = new DirectoryInfo(path);
                             if (!dirInfo.Exists)
                             {
@@ -135,14 +133,14 @@ namespace LITBOT
                             await bot.DownloadFile(filePath, fileStream);
                             await bot.SendMessage(msg.Chat, "Обложка успешна загружена");
                             chatStatus = "book";
-                            book.pathPicture = destinationFilePath;
+                            book.picturePath = destinationFilePath;
                             await bot.SendMessage(msg.Chat, "Отправьте книгу");
                             break;
                         }
                     case "book":
                         {
                             string path = @"C:\Users\demis\Desktop\Study\OTUS\ProjectWorkLitBot\";
-                            string subpath = $@"{msg.From.Id}\{book.genre}\{book.author}\{book.name}\";
+                            string subpath = $@"{msg.From.Id}\{genre.name}\{author.name}\{book.name}\";
                             DirectoryInfo dirInfo = new DirectoryInfo(path);
                             if (!dirInfo.Exists)
                             {
@@ -168,9 +166,13 @@ namespace LITBOT
                             await bot.DownloadFile(filePath, fileStream);
                             
 
-                            book.pathBook = destinationFilePath;
+                            book.bookPath = destinationFilePath;
                             DapperBookRepository dapperBookRepository = new DapperBookRepository();
-                            await dapperBookRepository.InsertToBook(book);
+                            await dapperBookRepository.InsertToGenre(genre);
+                            int genreId = dapperBookRepository.GetLastIdTable("genre");
+                            await dapperBookRepository.InsertToAuthor(author, genreId);
+                            int authorId = dapperBookRepository.GetLastIdTable("author");
+                            await dapperBookRepository.InsertToBook(book, genreId, authorId);
                             await bot.SendMessage(msg.Chat, "Книга успешно загружена");
                             break;
                         }

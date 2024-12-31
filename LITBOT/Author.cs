@@ -6,13 +6,10 @@ using System.Threading.Tasks;
 
 namespace LITBOT
 {
-    public class Book
+    public class Author
     {
         public int id;
         public string name;
-        public string picturePath;
-        public string bookPath;
         public int ghenre_id;
-        public int author_id;
     }
 }
