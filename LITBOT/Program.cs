@@ -107,7 +107,7 @@ namespace LITBOT
                         }
                     case "picture":
                         {
-                            string path = @"C:\Users\demis\Desktop\Study\OTUS\ProjectWorkLitBot\";
+                            string path = @"C:\Users\demis\Desktop\Study2024\OTUS\ProjectWorkLitBot\";
                             string subpath = $@"{msg.From.Id}\{genre.name}\{author.name}\{book.name}\";
                             DirectoryInfo dirInfo = new DirectoryInfo(path);
                             if (!dirInfo.Exists)
@@ -139,7 +139,7 @@ namespace LITBOT
                         }
                     case "book":
                         {
-                            string path = @"C:\Users\demis\Desktop\Study\OTUS\ProjectWorkLitBot\";
+                            string path = @"C:\Users\demis\Desktop\Study2024\OTUS\ProjectWorkLitBot\";
                             string subpath = $@"{msg.From.Id}\{genre.name}\{author.name}\{book.name}\";
                             DirectoryInfo dirInfo = new DirectoryInfo(path);
                             if (!dirInfo.Exists)
@@ -169,9 +169,11 @@ namespace LITBOT
                             book.bookPath = destinationFilePath;
                             DapperBookRepository dapperBookRepository = new DapperBookRepository();
                             await dapperBookRepository.InsertToGenre(genre);
-                            int genreId = dapperBookRepository.GetLastIdTable("genre");
+                            int genreId = await dapperBookRepository.GetId("genre", "name", genre.name);
+                            Console.WriteLine($"gernreId = {genreId}");
                             await dapperBookRepository.InsertToAuthor(author, genreId);
-                            int authorId = dapperBookRepository.GetLastIdTable("author");
+                            int authorId = await dapperBookRepository.GetId("author", "name", author.name);
+                            Console.WriteLine($"authorId = {authorId}");
                             await dapperBookRepository.InsertToBook(book, genreId, authorId);
                             await bot.SendMessage(msg.Chat, "Книга успешно загружена");
                             break;

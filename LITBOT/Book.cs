@@ -12,7 +12,7 @@ namespace LITBOT
         public string name;
         public string picturePath;
         public string bookPath;
-        public int ghenre_id;
-        public int author_id;
+        public int genreId;
+        public int authorId;
     }
 }

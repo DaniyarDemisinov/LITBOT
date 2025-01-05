@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Telegram.Bot.Types;
 
 namespace LITBOT
 {
@@ -19,33 +20,31 @@ namespace LITBOT
         }
         public async Task InsertToGenre(Genre genre)
         {
+            if (await SearchRepeat("genre", "name", genre.name))
+            {
+                Console.WriteLine("Мы в SearchRepeat Genre");
+                return;
+            }
             string commandText = 
-                "INSERT INTO genre (name) VALUES (@name)" +
-                "ON CONFLICT (name) " +
-                "DO NOTHING";
+                "INSERT INTO genre (name) VALUES (@name)";
             var queryArguments = new
             {
                 name = genre.name
             };
             await _connection.ExecuteAsync(commandText, queryArguments);
         }
-        public int GetLastIdTable(string tableName)
-        {
-            string text = 
-                $"SELECT id FROM {tableName} " +
-                $"ORDER BY id DESC";
-            
-            var result = _connection.QueryFirstOrDefault<int>(text);
-            return result;
-        }
+        
         public async Task InsertToAuthor(Author author, int genreId)
         {
+            if (await SearchRepeat("author", "name", author.name))
+            {
+                Console.WriteLine("Мы в SearchRepeat Author");
+                return;
+            }
             string commandText = "INSERT INTO author " +
                 "(name, genre_id) " +
                 "VALUES " +
-                "(@name, @genre_id) " +
-                "ON CONFLICT (name) " +
-                "DO NOTHING";
+                "(@name, @genre_id) ";
             var queryArguments = new
             {
                 name = author.name,
@@ -71,12 +70,15 @@ namespace LITBOT
 
         public async Task InsertToBook(Book book, int genreId, int authorId)
         {
+            if (await SearchRepeat("book", "name", book.name))
+            {
+                Console.WriteLine("Мы в SearchRepeat Book");
+                return;
+            }
             string commandText = "INSERT INTO book " +
                 "(name, picture_path, book_path, genre_id, author_id) " +
                 "VALUES " +
-                "(@name, @picture_path, @book_path, @genre_id, @author_id) " +
-                "ON CONFLICT (name) " +
-                "DO NOTHING";
+                "(@name, @picture_path, @book_path, @genre_id, @author_id) ";
             var queryArguments = new 
             {
                 name = book.name,
@@ -87,6 +89,29 @@ namespace LITBOT
             };
             await _connection.ExecuteAsync(commandText, queryArguments);
         }
-        
+        public async Task<int> GetId(string tableName, string columnName, string txt)
+        {
+            string commandText =
+                $"SELECT id FROM {tableName} " +
+                $"WHERE {columnName} = '{txt}'";
+
+            var result = await _connection.QueryFirstOrDefaultAsync<int>(commandText);
+            return result;
+        }
+        public async Task<bool> SearchRepeat(string tableName, string columnName, string txt)
+        {
+            string commandText =
+                $"SELECT {columnName} FROM {tableName} " +
+                $"WHERE {columnName} = '{txt}'";
+            var result = await _connection.QueryFirstOrDefaultAsync<string>(commandText);
+            if (result == null)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
     }
 }

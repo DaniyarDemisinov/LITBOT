@@ -10,6 +10,6 @@ namespace LITBOT
     {
         public int id;
         public string name;
-        public int ghenre_id;
+        public int genreId;
     }
 }
