@@ -107,7 +107,7 @@ namespace LITBOT
                         }
                     case "picture":
                         {
-                            string path = @"C:\Users\demis\Desktop\Study2024\OTUS\ProjectWorkLitBot\";
+                            string path = @"C:\Users\demis\Desktop\Study\OTUS\ProjectWorkLitBot\";
                             string subpath = $@"{msg.From.Id}\{genre.name}\{author.name}\{book.name}\";
                             DirectoryInfo dirInfo = new DirectoryInfo(path);
                             if (!dirInfo.Exists)
@@ -139,7 +139,7 @@ namespace LITBOT
                         }
                     case "book":
                         {
-                            string path = @"C:\Users\demis\Desktop\Study2024\OTUS\ProjectWorkLitBot\";
+                            string path = @"C:\Users\demis\Desktop\Study\OTUS\ProjectWorkLitBot\";
                             string subpath = $@"{msg.From.Id}\{genre.name}\{author.name}\{book.name}\";
                             DirectoryInfo dirInfo = new DirectoryInfo(path);
                             if (!dirInfo.Exists)
