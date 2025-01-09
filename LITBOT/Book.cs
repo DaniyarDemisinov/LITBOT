@@ -14,5 +14,6 @@ namespace LITBOT
         public string bookPath;
         public int genreId;
         public int authorId;
+        
     }
 }

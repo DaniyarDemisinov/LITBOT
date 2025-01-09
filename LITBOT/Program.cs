@@ -15,7 +15,7 @@ namespace LITBOT
         public static Author author = new Author();
         public static Book book = new Book();
         public static ReplyKeyboardMarkup replyKeyboard;
-        
+
         static async Task Main(string[] args)
         {
             using var cts = new CancellationTokenSource();
@@ -34,9 +34,9 @@ namespace LITBOT
         }
         static async Task OnMessage(Message msg, UpdateType type)
         {
-            
+
             Console.WriteLine($"{msg.From} прислал вам личное сообщение: {msg.Text}");
-            if(msg.Text == "/start")
+            if (msg.Text == "/start")
             {
                 var inlineKeyboardStart = new InlineKeyboardMarkup(
                     new List<InlineKeyboardButton[]>()
@@ -72,7 +72,7 @@ namespace LITBOT
                             chatStatus = "author";
                             await bot.SendMessage(
                                 msg.Chat,
-                                "Введите ФИО автора в формате И.О. Фамилия (например: А.С. Пушкин):");
+                                "Введите ФИО автора (например: А.С.Пушкин):");
                             break;
                         }
                     case "author":
@@ -148,7 +148,7 @@ namespace LITBOT
                             }
                             dirInfo.CreateSubdirectory(subpath);
 
-                            if(msg.Type is not MessageType.Document)
+                            if (msg.Type is not MessageType.Document)
                             {
                                 await bot.SendMessage(
                                     msg.Chat,
@@ -157,20 +157,20 @@ namespace LITBOT
                             }
 
                             var fileId = msg.Document.FileId;
-                            
+
                             var fileInfo = await bot.GetFile(fileId);
                             var filePath = fileInfo.FilePath;
                             var fileExtension = Path.GetExtension(filePath);
                             var destinationFilePath = path + subpath + $@"{book.name}{fileExtension}";
                             await using Stream fileStream = System.IO.File.Create(destinationFilePath);
                             await bot.DownloadFile(filePath, fileStream);
-                            
+
 
                             book.bookPath = destinationFilePath;
                             DapperBookRepository dapperBookRepository = new DapperBookRepository();
                             await dapperBookRepository.InsertToGenre(genre);
                             int genreId = await dapperBookRepository.GetId("genre", "name", genre.name);
-                            Console.WriteLine($"gernreId = {genreId}");
+                            Console.WriteLine($"genreId = {genreId}");
                             await dapperBookRepository.InsertToAuthor(author, genreId);
                             int authorId = await dapperBookRepository.GetId("author", "name", author.name);
                             Console.WriteLine($"authorId = {authorId}");
@@ -178,10 +178,32 @@ namespace LITBOT
                             await bot.SendMessage(msg.Chat, "Книга успешно загружена");
                             break;
                         }
+                    case "upload":
+                        {
+                            string nameBook = msg.Text;
+                            var dapperBookRepository = new DapperBookRepository();
+                            var books = await dapperBookRepository.GetBooks(nameBook);
+                            foreach (var book in books)
+                            {
+                                string genreName = await dapperBookRepository.GetName("genre", book.genreId);
+                                string authorName = await dapperBookRepository.GetName("author", book.authorId);
+
+                                await using Stream streamPhoto = System.IO.File.OpenRead(book.picturePath);
+                                int lastIndexOfPhoto = book.picturePath.LastIndexOf('\\');
+                                string namePhotoWithExp = book.picturePath.Substring(lastIndexOfPhoto + 1);
+                                var messagePhoto = await bot.SendPhoto(msg.Chat, photo: InputFile.FromStream(streamPhoto, namePhotoWithExp),
+                                    caption: $"Жанр: {genreName}\nАвтор: {authorName}\nКнига: {book.name}👇");
+                                await using Stream streamDocument = System.IO.File.OpenRead(book.bookPath);
+                                int lastIndexOfDocument = book.bookPath.LastIndexOf('\\');
+                                string nameBookWithExp = book.bookPath.Substring(lastIndexOfDocument + 1);
+                                var messageDocument = await bot.SendDocument(msg.Chat, document: InputFile.FromStream(streamDocument, nameBookWithExp));
+                            }
+                            break;
+                        }
                 }
             }
             // По идее, надо удалить это:
-            else if(msg.Type == MessageType.Photo)
+            else if (msg.Type == MessageType.Photo)
             {
                 await bot.SendMessage(
                     msg.Chat,
@@ -194,7 +216,7 @@ namespace LITBOT
                     msg.Chat,
                     "Для начала работы нажмите на \"/start\"");
             }
-            
+
 
             //Console.WriteLine($"Received {type} '{msg.Text}' in {msg.Chat}");
             //await bot.SendMessage(msg.Chat, $"{msg.From} said: {msg.Text}");
@@ -236,9 +258,21 @@ namespace LITBOT
                         chatStatus = "book";
                         break;
                     }
+                case "take":
+                    {
+                        await bot.SendMessage(
+                            callbackQuery.Message.Chat,
+                            "Напишите название книги:");
+                        chatStatus = "upload";
+
+
+                        break;
+                    }
                 default:
                     {
-                        Console.WriteLine("что-то пошло не так");
+                        await bot.SendMessage(
+                            callbackQuery.Message.Chat,
+                            "Что-то пошло не так...");
                         break;
                     }
             }

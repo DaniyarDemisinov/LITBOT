@@ -36,19 +36,19 @@ namespace LITBOT
         
         public async Task InsertToAuthor(Author author, int genreId)
         {
-            if (await SearchRepeat("author", "name", author.name))
+            if (await SearchRepeat("author", "name", author.name, genreId))
             {
                 Console.WriteLine("Мы в SearchRepeat Author");
                 return;
             }
             string commandText = "INSERT INTO author " +
-                "(name, genre_id) " +
+                "(name, genreId) " +
                 "VALUES " +
-                "(@name, @genre_id) ";
+                "(@name, @genreId) ";
             var queryArguments = new
             {
                 name = author.name,
-                genre_id = genreId
+                genreId = genreId
             };
             await _connection.ExecuteAsync(commandText, queryArguments);
         }
@@ -70,22 +70,22 @@ namespace LITBOT
 
         public async Task InsertToBook(Book book, int genreId, int authorId)
         {
-            if (await SearchRepeat("book", "name", book.name))
+            if (await SearchRepeat("book", "name", book.name, genreId, authorId))
             {
                 Console.WriteLine("Мы в SearchRepeat Book");
                 return;
             }
             string commandText = "INSERT INTO book " +
-                "(name, picture_path, book_path, genre_id, author_id) " +
+                "(name, picturePath, bookPath, genreId, authorId) " +
                 "VALUES " +
-                "(@name, @picture_path, @book_path, @genre_id, @author_id) ";
+                "(@name, @picturePath, @bookPath, @genreId, @authorId) ";
             var queryArguments = new 
             {
                 name = book.name,
-                picture_path = book.picturePath,
-                book_path = book.bookPath,
-                genre_id = genreId,
-                author_id = authorId
+                picturePath = book.picturePath,
+                bookPath = book.bookPath,
+                genreId = genreId,
+                authorId = authorId
             };
             await _connection.ExecuteAsync(commandText, queryArguments);
         }
@@ -112,6 +112,58 @@ namespace LITBOT
             {
                 return true;
             }
+        }
+
+        public async Task<bool> SearchRepeat(string tableName, string columnName, string txt, int genreId)
+        {
+            string commandText =
+                $"SELECT {columnName} FROM {tableName} " +
+                $"WHERE {columnName} = '{txt}' " +
+                $"AND genreId = {genreId}";
+            var result = await _connection.QueryFirstOrDefaultAsync<string>(commandText);
+            if (result == null)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        public async Task<bool> SearchRepeat(string tableName, string columnName, string txt, int genreId, int authorId)
+        {
+            string commandText =
+                $"SELECT {columnName} FROM {tableName} " +
+                $"WHERE {columnName} = '{txt}' " +
+                $"AND genreId = {genreId} " +
+                $"AND authorId = {authorId}";
+            var result = await _connection.QueryFirstOrDefaultAsync<string>(commandText);
+            if (result == null)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        public async Task<IEnumerable<Book>> GetBooks(string nameBook)
+        {
+            string commandText = 
+                $"SELECT id, name, picturePath, bookPath, genreId, authorId FROM book " +
+                $"WHERE name = '{nameBook}'";
+            var result = await _connection.QueryAsync<Book>(commandText);
+            return result;
+        }
+        public async Task<string> GetName(string tableName, int id)
+        {
+            string commandText = 
+                $"SELECT name FROM {tableName} " +
+                $"WHERE id = {id}";
+            var result = await _connection.QueryFirstOrDefaultAsync<string>(commandText);
+            return result;
         }
     }
 }
